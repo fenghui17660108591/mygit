@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jxd.emp.dao.AdminMapper">
+
+
+    <!--Admin getAdminByName(@Param("ename") String ename, @Param("password") String password);-->
+    <select id="getAdminByName" resultType="admin">
+        select id, ename, password from admin
+        where ename = #{ename} and password = #{password}
+    </select>
+
+    <!--IPage<Emp> emplist(IPage<Emp> page, @Param("ename") String ename, @Param("deptno") int deptno);-->
+    <select id="emplist" resultType="map">
+        select e.empno,e.ename,e.sex,e.job,tel,e.deptno,d.dname from emp e
+        left join dept d on d.deptno = e.deptno
+        <where>
+            <if test="ename != '' and ename != null">
+                ename like '%' #{ename} '%'
+            </if>
+            <if test="deptno != 0 ">
+                and e.deptno = #{deptno}
+            </if>
+        </where>
+        order by empno
+    </select>
+
+    <!--  List<Dept> deptlist();-->
+    <select id="deptlist" resultType="dept">
+        select deptno, dname from dept
+    </select>
+
+    <!--boolean delEmp(List<Integer> empnos);-->
+    <delete id="delEmp" parameterType="integer">
+        delete from emp where empno in
+        <foreach collection="empnos" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- boolean updateEmp(Emp emp);-->
+    <update id="updateEmp" parameterType="emp">
+        update  emp set ename = #{emp.ename}, sex = #{emp.sex},
+                        tel = #{emp.tel}, deptno = #{emp.deptno},
+                        job = #{emp.job}
+        where empno = #{emp.empno}
+    </update>
+
+    <!--boolean addEmp( @Param("emp") Emp emp);-->
+    <insert id="addEmp" parameterType="emp">
+        insert into emp (ename, sex, tel, deptno, job, password) values
+        (#{emp.ename}, #{emp.sex}, #{emp.tel}, #{emp.deptno}, #{emp.job}, 123)
+    </insert>
+
+    <!--boolean resetpassword(@Param("empnos") List<Integer> empnos);-->
+    <update id="resetpassword"  parameterType="integer">
+        update  emp set password = 123 where empno in
+        <foreach collection="empnos" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <!--List<Map<String, Object>>  deptlistinfo(Map<String, String> map);-->
+    <select id="deptlistinfo" resultType="map" parameterType="string">
+        select dname, ename, d.deptno, count from  dept d left join
+        (select s.deptno,  count, t.ename from
+        (select deptno, count(deptno) count from emp group by deptno) s
+        left join
+        (select deptno, ename, job from  emp where  job = "经理") t
+        on s.deptno = t.deptno) w
+        on d.deptno = w.deptno
+        <where>
+            <if test="ename != '' and ename != null">
+                ename like '%' #{ename} '%'
+            </if>
+            <if test="deptno != 0 ">
+                and d.deptno = #{deptno}
+            </if>
+        </where>
+    </select>
+
+    <!-- boolean addDept(@Param("map")Map<String, String> map);-->
+    <insert id="addDept" parameterType="map">
+        insert into dept (dname) values  (#{map.dname})
+    </insert>
+
+    <!--boolean updateDept( @Param("dept") Dept dept);-->
+    <update id="updateDept" parameterType="dept">
+        update  dept set dname = #{dept.dname}
+        where deptno = #{dept.deptno}
+    </update>
+
+    <!-- boolean delDept(@Param("deptnos") List<Integer> deptnos);-->
+    <delete id="delDept" parameterType="integer">
+        delete from dept where deptno in
+        <foreach collection="deptnos" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!--IPage<Emp> projectlist(IPage<Emp> page, @Param("pname") String pname, @Param("deptno") int deptno);-->
+    <select id="projectlist" resultType="map">
+        select pno, pname,dname, d.deptno from project p
+        inner join dept d on d.deptno = p.deptno
+        <where>
+            <if test="pname != '' and pname != null">
+                pname like '%' #{pname} '%'
+            </if>
+            <if test="deptno != 0 ">
+                and d.deptno = #{deptno}
+            </if>
+        </where>
+        order by pno
+    </select>
+
+    <!--boolean delproject(@Param("projects") List<Integer> projects);-->
+    <delete id="delproject" parameterType="integer">
+        delete from project where pno in
+        <foreach collection="projects" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!--boolean addProject(@Param("map")Map<String, String> map);-->
+    <insert id="addProject" parameterType="map">
+        insert into project (pname , deptno) values  (#{map.pname}, #{map.deptno})
+    </insert>
+
+    <!--boolean updateproject( @Param("project") Project project);-->
+    <update id="updateProject" parameterType="project">
+        update  project set pname = #{project.pname}, deptno = #{project.deptno}
+        where pno = #{project.pno}
+    </update>
+
+</mapper>

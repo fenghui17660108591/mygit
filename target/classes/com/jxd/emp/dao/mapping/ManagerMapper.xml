@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jxd.emp.dao.EmpMapper">
+
+    <!--String getDeptnoByEname(@Param("ename") String ename);-->
+    <select id="getDeptnoByEname" resultType="string">
+        select d.deptno from dept d inner join emp e on e.deptno = d.deptno
+        where ename = #{ename}
+    </select>
+
+    <!--List<WorkReporting> getWorkReportingByDeptno(@Param("deptno")Integer deptno,@Param("date") String date);-->
+    <select id="getWorkReportingByDeptno" resultType="workReporting">
+        select date, time, attendance, workload, overtime, remarks, pno, state, w.empno, reviewer, audittime
+        from work_reporting w inner join emp e on w.empno = e.empno where deptno = #{deptno} and date = #{date}
+    </select>
+
+    <!--List<Map<String, Object>> getInfoByDateAndPname(@Param("deptno")String deptno,@Param("date") String date,@Param("panme")  String pname));-->
+    <select id="getInfoByDateAndPname" resultType="map" parameterType="map">
+        select wno, empno, ename, date, attendance, workload, overtime, pname, dname from dept d inner join
+            (select wno, empno, ename, date, s.deptno, attendance, workload, overtime, pname from project p inner join
+            (select wno, e.empno, ename, date, pno, deptno, attendance, workload, overtime from emp e inner join work_reporting w
+            on e.empno = w.empno where state = 0) s
+            on p.pno = s.pno ) t
+        on d.deptno = t.deptno
+        where t.deptno = #{map.deptno} and date = #{map.date}
+        <where></where>
+        <if test="map.pname != '' and map.pname != null">
+            and pname like '%' #{map.pname} '%'
+        </if>
+        <if test="map.ename != '' and map.ename != null">
+            and ename like '%' #{map.ename} '%'
+        </if>
+    </select>
+
+    <!--boolean adopt(@Param("map") Map<String, String> map, @Param("audittime") String audittime);-->
+    <update id="adopt" parameterType="map">
+        update work_reporting set state = 2,reviewer = #{map.reviewer}, audittime = #{audittime}
+        where empno = #{map.empno} and date = #{map.date}
+    </update>
+
+    <!--boolean adopts(@Param("map") List<Strong > map mapList, @Param("audittime") String audittime);-->
+    <update id="adopts" parameterType="map">
+        update work_reporting set state = 2,reviewer = #{reviewer}, audittime = #{audittime}
+        where wno in
+        <foreach collection="map" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <!--boolean fail(@Param("map") Map<String, String> map, @Param("audittime") String audittime);-->
+    <update id="fail" parameterType="map">
+        update work_reporting set state = 1,reviewer = #{map.reviewer}, audittime = #{audittime}, reason = #{map.reason}
+        where empno = #{map.empno} and date = #{map.date}
+    </update>
+
+    <!--boolean fails(@Param("map") List<String> map, @Param("audittime") String audittime,@Param("reviewer") String reviewer,@Param("reason") String reason);-->
+    <update id="fails" parameterType="map">
+        update work_reporting set state = 2,reviewer = #{reviewer}, audittime = #{audittime}, reason = #{reason}
+        where wno in
+        <foreach collection="map" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <!--String getDnameByEname(@Param("ename") String ename);-->
+    <select id="getDnameByEname" resultType="string">
+        select dname from emp e inner join dept d on e.deptno = d.deptno
+        where e.ename = #{ename}
+    </select>
+
+    <!--IPage<Map<String,String>> getAllInfoByDeptno(IPage<Map<String,String>> page,
+                                                   @Param("date") String date,
+                                                   @Param("pname") String pname,
+                                                   @Param("ename") String ename;-->
+    <select id="getAllInfoByDeptno" resultType="map">
+        select ename ,date , time, attendance, overtime, pname, state, reviewer, dname
+        from project p  right join
+        (select ename ,date , time, attendance, overtime, pno, state, reviewer, dname
+        from dept d inner join
+        (select ename ,date , time, attendance, overtime, pno, state, deptno, reviewer
+        from work_reporting w  inner join emp e on w.empno  = e.empno) s
+        on d.deptno = s.deptno) t
+        on p.pno = t.pno
+        <where>
+            <if test="date1 != '' and date1 != null and date2 != '' and date2 != null">
+                date &gt;= #{date1} and date &lt;= #{date2}
+            </if>
+            <if test="dname != '' and dname != null">
+                and  dname = #{dname}
+            </if>
+            <if test="ename != '' and ename != null">
+                and  ename like '%' #{ename} '%'
+            </if>
+        </where>
+    </select>
+
+    <!-- IPage<Map<String,String>> getAllProcessByDeptno(IPage<Map<String,String>> page,
+                                                 @Param("date") String date,
+                                                 @Param("dname") String dname,
+                                                 @Param("ename") String ename);-->
+    <select id="getAllProcessByDeptno" resultType="map">
+        select empno, ename ,date , state, dname
+        from project p  right join
+        (select s.empno, ename ,date , time, attendance, overtime, pno, state, reviewer, dname
+        from dept d inner join
+        (select w.empno, ename ,date , time, attendance, overtime, pno, state, deptno, reviewer
+        from work_reporting w  inner join emp e on w.empno  = e.empno) s
+        on d.deptno = s.deptno) t
+        on p.pno = t.pno
+        where state = -1
+        <if test="date != '' and date != null">
+            and date = #{date}
+        </if>
+        <if test="dname != '' and dname != null">
+            and  dname = #{dname}
+        </if>
+        <if test="ename != '' and ename != null">
+            and  ename like '%' #{ename} '%'
+        </if>
+    </select>
+
+    <!--List<Map<String, Object>> getAllProcessCount(@Param("dname") String dname,@Param("enamelist") List<String> enamelist);-->
+    <select id="getAllProcessCount" resultType="map">
+        select ename, count(ename) count from
+        (select ename
+        from project p  right join
+        (select  ename, pno, state,dname
+        from dept d inner join
+        (select ename, overtime, pno, state, deptno
+        from work_reporting w  inner join emp e on w.empno  = e.empno) s
+        on d.deptno = s.deptno) t
+        on p.pno = t.pno
+        where state = -1 and  dname = #{dname}) v
+        group by ename
+
+    </select>
+
+    <!--List<String> getAllEnameByDeptno(@Param("deptno") String deptno)-->
+    <select id="getAllEnameByDeptno" resultType="string">
+        select ename from  emp where deptno = #{deptno}
+    </select>
+
+    <!-- List<Map<String, Object>> getMonthlyOver(@Param("map") Map<String, String> map);-->
+    <select id="getMonthlyOver" resultType="map">
+        select date, ename, overtime , workload, deptno from emp e inner join
+        (select date, empno, overtime , workload from work_reporting wr ) s
+        on e.empno = s.empno
+        where deptno = #{map.deptno}
+            <if test="map.empname != '' and map.empname != null">
+                and ename like '%' #{map.empname} '%'
+            </if>
+            <if test="map.date != '' and map.date != null">
+                and  date like '%' #{map.date} '%'
+            </if>
+    </select>
+
+
+
+
+
+</mapper>

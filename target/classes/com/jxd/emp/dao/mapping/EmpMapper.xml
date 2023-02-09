@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jxd.emp.dao.EmpMapper">
+
+    <!-- boolean setPassword(Map<String,String> map);-->
+    <update id="setPassword" parameterType="map">
+        update  emp set password = #{map.newpassword}
+        where ename = #{map.ename}
+    </update>
+
+    <!-- Emp getEmpByName(@Param("ename") String ename, @Param("password") String password);-->
+    <select id="getEmpByName" resultType="emp">
+        select empno, ename, sex, tel, deptno, job, password from emp
+        where ename = #{ename} and password = #{password}
+    </select>
+
+    <!--List<Emp> selectAllEmp();-->
+    <select id="selectAllEmp" resultType="emp">
+        select empno from emp
+    </select>
+
+    <!-- void addInfoEveryDay(@Param("listWork") List<WorkReporting> listWork);-->
+    <insert id="addInfoEveryDay" parameterType="workReporting">
+        insert into work_reporting (date, time, attendance, workload, overtime, remarks, pno, state, empno) values
+        <foreach collection="listWork" item="workReporting" separator="," close=";">
+            (#{workReporting.date}, null, null, null, null, null, null, #{workReporting.state}, #{workReporting.empno})
+        </foreach>
+    </insert>
+
+    <!--Integer empMapper.getEmpIdByName(@Param("ename")String ename);-->
+    <select id="getEmpIdByName" resultType="integer">
+        select empno from emp where ename = #{ename}
+    </select>
+
+    <!--List<WorkReporting> selectMissInfo(@Param("empno") Integer empno);-->
+    <select id="selectMissInfo" resultType="workReporting">
+        select date from work_reporting where empno = #{empno} and state = -1
+    </select>
+
+    <!-- List<WorkReporting> selectReturnInfo(@Param("empno") Integer empno);-->
+    <select id="selectReturnInfo" resultType="workReporting">
+       select date, overtime, pno, remarks, attendance, reason from work_reporting where empno = #{empno} and state = 1
+    </select>
+
+    <!--boolean insertWorkReporting(WorkReporting workReporting);-->
+    <update id="insertWorkReporting" parameterType="workReporting">
+        update  work_reporting set time = #{workReporting.time},
+        attendance = #{workReporting.attendance}, workload = #{workReporting.workload},
+        overtime = #{workReporting.overtime}, remarks = #{workReporting.remarks},
+        pno = #{workReporting.pno}, state = #{workReporting.state}
+        where date = #{workReporting.date} and empno = #{workReporting.empno}
+    </update>
+
+    <!-- Map<String,String> selectMissInfoByDate(@Param("empno") Integer empno,@Param("date") String date);-->
+    <select id="selectMissInfoByDate" resultType="java.util.HashMap">
+        select p.state, p.date, p.empno, p.ename, d.dname from dept d left join
+        (select w.date, w.empno, w.state, e.ename,e.deptno from work_reporting w left join emp e on w.empno = e.empno
+        where w.empno = #{empno}  and w.date = #{date}) p
+        on d.deptno = p.deptno
+        where p.empno = #{empno}
+    </select>
+
+    <!--IPage<Map<String,String>> getWorkReportingList(IPage<Map<String,String>> page, @Param("date") String date, @Param("pname") String pname, @Param("ename") String ename);-->
+    <select id="getWorkReportingList" resultType="map">
+        select d.ename, d.date, d.attendance, d.workload, d.overtime, p.pname, d.reviewer, d.audittime, d.remarks, d.state
+        from project p inner join
+        (select ename, date, attendance, workload, overtime, pno, reviewer, audittime, remarks, state
+        from work_reporting w inner join emp e on e.empno = w.empno where e.ename = #{ename}) d on p.pno = d.pno
+        <where>
+            <if test="date != '' and date != null">
+                date = #{date}
+            </if>
+            <if test="pname != '' and pname != null">
+                and  pname like '%' #{pname} '%'
+            </if>
+            <if test="year != '' and year != null">
+                and  date like '%' #{year} '%'
+            </if>
+        </where>
+    </select>
+
+    <!--List<Map<String,Object>> selectDateRange(Integer empno);-->
+    <select id="selectDateRange" resultType="map">
+        select date from work_reporting where state = -1 and empno = #{empno}
+    </select>
+
+    <!--List<Map<String,Object>> getLastTimeProject(Integer empno,List<String> timelist);-->
+    <select id="getLastTimeProject" resultType="map" parameterType="string">
+        select p.pno, p.pname from project p inner join work_reporting w on w.pno = p.pno
+        where empno = #{empno} and date in
+        <foreach collection="timelist" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+    <!-- List<project> getProjectList(@Param("pname") String pname,@Param("pno") Integer pno);-->
+    <select id="getProjectList" resultType="project">
+        select pno, pname from project
+        <where>
+            <if test="pno != '' and pno != null">
+                pno = #{pno}
+            </if>
+            <if test="pname != '' and pname != null">
+                and  pname like '%' #{pname} '%'
+            </if>
+
+        </where>
+    </select>
+
+    <!-- String getPnameById(@Param("pno") Integer pno);-->
+    <select id="getPnameById" resultType="string">
+        select pname from project where pno = #{pno}
+    </select>
+</mapper>
